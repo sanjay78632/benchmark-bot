@@ -2,9 +2,9 @@ name: Benchmark D Compiler
 
 on:
   push:
-    branches: [ main ]
+    branches: [main]
   pull_request:
-    branches: [ main ]
+    branches: [main]
 
 jobs:
   benchmark:
@@ -19,23 +19,20 @@ jobs:
         with:
           compiler: dmd-latest
 
-      - name: Install Dependencies
+      - name: Install dependencies
         run: sudo apt update && sudo apt install -y hyperfine jq time
 
-      - name: Run Benchmark
+      - name: Create Hello World File
         run: |
-          echo "Benchmarking hello.d..."
+          echo 'import std.stdio; void main() { writeln("Hello, World!"); }' > hello.d
+
+      - name: Compile and Benchmark
+        run: |
+          echo "Compiling hello.d..."
           dmd hello.d -of=hello
-          /usr/bin/time -v ./hello 2>&1 | tee time_output.txt
-          hyperfine --warmup 1 "./hello" --export-json benchmark_result.json
-          cat benchmark_result.json
-          cat time_output.txt
 
-      - name: Upload Benchmark Results
-        uses: actions/upload-artifact@v3
-        with:
-          name: benchmark-results
-          path: |
-            benchmark_result.json
-            time_output.txt
+          echo "Benchmarking execution time..."
+          hyperfine --warmup 1 "./hello"
 
+          echo "Measuring memory usage..."
+          /usr/bin/time -v ./hello || true
