@@ -1,0 +1,41 @@
+name: Benchmark D Compiler
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  benchmark:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up D environment
+        uses: dlang-community/setup-dlang@v1
+        with:
+          compiler: dmd-latest
+
+      - name: Install Dependencies
+        run: sudo apt update && sudo apt install -y hyperfine jq time
+
+      - name: Run Benchmark
+        run: |
+          echo "Benchmarking hello.d..."
+          dmd hello.d -of=hello
+          /usr/bin/time -v ./hello 2>&1 | tee time_output.txt
+          hyperfine --warmup 1 "./hello" --export-json benchmark_result.json
+          cat benchmark_result.json
+          cat time_output.txt
+
+      - name: Upload Benchmark Results
+        uses: actions/upload-artifact@v3
+        with:
+          name: benchmark-results
+          path: |
+            benchmark_result.json
+            time_output.txt
+
