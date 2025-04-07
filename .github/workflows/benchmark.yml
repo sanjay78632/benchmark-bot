@@ -22,17 +22,23 @@ jobs:
       - name: Install dependencies
         run: sudo apt update && sudo apt install -y hyperfine jq time
 
-      - name: Create Hello World File
+      - name: Create benchmark output
         run: |
-          echo 'import std.stdio; void main() { writeln("Hello, World!"); }' > hello.d
-
-      - name: Compile and Benchmark
-        run: |
-          echo "Compiling hello.d..."
+          echo 'import std.stdio; void main() { writeln("Hello, benchmark!"); }' > hello.d
           dmd hello.d -of=hello
+          /usr/bin/time -v ./hello 2>&1 | tee time_output.txt
+          hyperfine --warmup 1 "./hello" --export-json benchmark_result.json
 
-          echo "Benchmarking execution time..."
-          hyperfine --warmup 1 "./hello"
-
-          echo "Measuring memory usage..."
-          /usr/bin/time -v ./hello || true
+      - name: Save benchmark results to benchmark-history branch
+        run: |
+          git config --global user.name "benchmark-bot"
+          git config --global user.email "benchmark-bot@users.noreply.github.com"
+          git fetch origin benchmark-history
+          git switch benchmark-history
+          TIMESTAMP=$(date +"%Y-%m-%d_%H-%M-%S")
+          mkdir -p results/$TIMESTAMP
+          cp benchmark_result.json results/$TIMESTAMP/
+          cp time_output.txt results/$TIMESTAMP/
+          git add results/
+          git commit -m "Add benchmark results - $TIMESTAMP"
+          git push origin benchmark-history
