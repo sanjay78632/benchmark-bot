@@ -33,14 +33,14 @@ jobs:
         run: |
           git config --global user.name "benchmark-bot"
           git config --global user.email "benchmark-bot@users.noreply.github.com"
-          git stash
           git fetch origin benchmark-history
           git switch benchmark-history
-          git stash pop || echo "No changes to apply"
+          
           TIMESTAMP=$(date +"%Y-%m-%d_%H-%M-%S")
           mkdir -p results/$TIMESTAMP
           cp benchmark_result.json results/$TIMESTAMP/
           cp time_output.txt results/$TIMESTAMP/
+          
           git add results/
           git commit -m "Add benchmark results - $TIMESTAMP"
           git push origin benchmark-history
