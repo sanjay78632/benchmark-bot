@@ -20,7 +20,7 @@ jobs:
           compiler: dmd-latest
 
       - name: Install dependencies
-        run: sudo apt update && sudo apt install -y hyperfine jq time
+        run: sudo apt update && sudo apt install -y hyperfine jq time git
 
       - name: Create benchmark output
         run: |
@@ -29,18 +29,21 @@ jobs:
           /usr/bin/time -v ./hello 2>&1 | tee time_output.txt
           hyperfine --warmup 1 "./hello" --export-json benchmark_result.json
 
-      - name: Save benchmark results to benchmark-history branch
+      - name: Save results to benchmark-history branch (via temp folder)
         run: |
           git config --global user.name "benchmark-bot"
           git config --global user.email "benchmark-bot@users.noreply.github.com"
-          git fetch origin benchmark-history
-          git switch benchmark-history
-          
+
+          # Clone the history branch to a new folder
+          git clone --branch benchmark-history https://github.com/${{ github.repository }} history-folder
+
+          # Copy new results into history folder
           TIMESTAMP=$(date +"%Y-%m-%d_%H-%M-%S")
-          mkdir -p results/$TIMESTAMP
-          cp benchmark_result.json results/$TIMESTAMP/
-          cp time_output.txt results/$TIMESTAMP/
-          
-          git add results/
+          mkdir -p history-folder/results/$TIMESTAMP
+          cp benchmark_result.json time_output.txt history-folder/results/$TIMESTAMP/
+
+          # Commit & push
+          cd history-folder
+          git add .
           git commit -m "Add benchmark results - $TIMESTAMP"
           git push origin benchmark-history
