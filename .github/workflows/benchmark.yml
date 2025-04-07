@@ -29,20 +29,16 @@ jobs:
           /usr/bin/time -v ./hello 2>&1 | tee time_output.txt
           hyperfine --warmup 1 "./hello" --export-json benchmark_result.json
 
-      - name: Save results to benchmark-history branch (via temp folder)
+      - name: Save benchmark results to benchmark-history branch
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           git config --global user.name "benchmark-bot"
           git config --global user.email "benchmark-bot@users.noreply.github.com"
-
-          # Clone the history branch to a new folder
-          git clone --branch benchmark-history https://github.com/${{ github.repository }} history-folder
-
-          # Copy new results into history folder
+          git clone --branch benchmark-history https://x-access-token:${GH_TOKEN}@github.com/${{ github.repository }} history-folder
           TIMESTAMP=$(date +"%Y-%m-%d_%H-%M-%S")
           mkdir -p history-folder/results/$TIMESTAMP
           cp benchmark_result.json time_output.txt history-folder/results/$TIMESTAMP/
-
-          # Commit & push
           cd history-folder
           git add .
           git commit -m "Add benchmark results - $TIMESTAMP"
